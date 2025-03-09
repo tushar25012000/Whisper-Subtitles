@@ -1,0 +1,138 @@
+
+# Whisper AI - Subtitle Translator Setup Guide
+
+## Step 1: Set Up a Virtual Environment in PyCharm
+Creating a virtual environment is the best way to keep dependencies organized.
+
+1. Open PyCharm and create a new Python project.
+2. Go to **File → New Project**.
+3. Select **"Virtualenv Environment"** under the environment options.
+4. Choose **Python 3.9+** as the interpreter.
+5. Click **Create**.
+
+---
+
+## Step 2: Install Required Libraries
+Open the **Terminal** tab inside PyCharm and run the following commands:
+
+### Install Whisper
+```bash
+pip install openai-whisper
+```
+
+### Install FFmpeg (required for audio/video processing):
+**On Windows (PowerShell):**
+```bash
+winget install ffmpeg
+```
+
+**On Mac (Terminal):**
+```bash
+brew install ffmpeg
+```
+
+**On Linux:**
+```bash
+sudo apt install ffmpeg
+```
+
+---
+
+## Step 3: Import Whisper and Write a Python Script
+Create a new Python file (e.g., `whisper_translator.py`) and add the following code:
+
+```python
+import whisper
+import os
+import torch
+
+# Load Whisper's "small" model for faster translation with balanced accuracy
+model = whisper.load_model("small").to("cuda")  # Enable GPU acceleration
+
+# Path to your movie
+video_path = r"path_to_your_video.mp4"
+
+# Transcribe and translate
+deprecated_path = os.getenv("PATH", "")
+os.environ["PATH"] = deprecated_path + os.pathsep + r"C:\path\to\your\ffmpeg\bin"
+
+result = model.transcribe(video_path, task="translate")
+
+# Format time function
+def format_time(seconds):
+    hours = int(seconds // 3600)
+    minutes = int((seconds % 3600) // 60)
+    seconds = int(seconds % 60)
+    milliseconds = int((seconds % 1) * 1000)
+    return f"{hours:02}:{minutes:02}:{seconds:02},{milliseconds:03}"
+
+# Save as .srt subtitle file
+with open("translated_subtitles.srt", "w", encoding="utf-8") as f:
+    for segment in result["segments"]:
+        start = segment['start']
+        end = segment['end']
+        text = segment['text']
+
+        f.write(f"{segment['id'] + 1}\n")
+        f.write(f"{format_time(start)} --> {format_time(end)}\n")
+        f.write(f"{text}\n\n")
+
+print("✅ Translation complete! Check 'translated_subtitles.srt'")
+```
+
+---
+
+## How Long Will Whisper AI Take?
+The time Whisper AI takes to generate subtitles depends on several factors:
+
+### 🔍 Key Factors Affecting Processing Time
+- **Video Length:** Longer videos take more time (e.g., a 1-hour movie may take 30-60 mins on a CPU).
+- **Hardware (CPU/GPU):** 
+   - **CPU (No GPU Support):** Slower, but still works well.
+   - **GPU (NVIDIA CUDA):** Much faster (5x to 10x improvement).
+- **Whisper Model Size:** 
+   - `tiny` → Fastest, least accurate.
+   - `base` → Balanced.
+   - `small` → Moderate speed with good accuracy.
+   - `medium` → Slower but more accurate.
+   - `large` → Slowest but most accurate (best for Swedish-to-English translation).
+- **Audio Quality:** Clear audio processes faster than noisy recordings.
+
+### 🕒 Estimated Processing Times on CPU (No GPU)
+- **5 min video** → ~5-10 mins
+- **30 min video** → ~30-60 mins
+- **1 hour video** → ~60-120 mins
+
+---
+
+## 🚀 Speeding Up the Process
+If the process is too slow, you can try:
+
+✅ **Reducing Model Size:** Use `small` or `medium` for faster results with good accuracy:
+```python
+model = whisper.load_model("small")
+```
+
+✅ **Splitting the Video:** Breaking your video into smaller chunks can improve performance.
+
+✅ **Enabling GPU Acceleration (Best Solution for Speed):**  
+If you have an **NVIDIA GPU**, install **torch with CUDA** support for Whisper to use GPU acceleration.
+
+### Install the CUDA version of PyTorch:
+```bash
+pip install torch torchvision torchaudio --index-url https://download.pytorch.org/whl/cu118
+```
+
+### In your Whisper code, add this before loading the model:
+```python
+import torch
+model = whisper.load_model("small").to("cuda")
+```
+
+Rerun your script — this will massively speed up the transcription!
+
+---
+
+## ✅ Recommended Next Steps
+- If you prefer faster results, switch to the **`small`** or **`medium`** model.
+- If you have an NVIDIA GPU, installing PyTorch with CUDA will greatly reduce processing time.
